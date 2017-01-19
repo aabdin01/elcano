@@ -298,7 +298,7 @@ void setup()
         attachInterrupt(digitalPinToInterrupt(IRPT_GO),    ISR_GO_rise,    RISING);//left stick l/r
         attachInterrupt(digitalPinToInterrupt(IRPT_ESTOP), ISR_ESTOP_rise, RISING);//ebrake
         attachInterrupt(digitalPinToInterrupt(IRPT_BRAKE), ISR_BRAKE_rise, RISING);//left stick u/d mode select
-//        attachInterrupt(digitalPinToInterrupt(IRPT_MOTOR_FEEDBACK), ISR_MOTOR_FEEDBACK_rise, RISING);
+        attachInterrupt(digitalPinToInterrupt(IRPT_MOTOR_FEEDBACK), ISR_MOTOR_FEEDBACK_rise, RISING);
   long unsigned state = 0;
   brake(false);
 }
@@ -950,7 +950,6 @@ volatile unsigned long OldTick = 0;
 
 /*---------------------------------------------------------------------------------------*/
 // WheelRev is called by an interrupt.
-// This is all WAY TOO LONG for an interrupt
 void WheelRev()
 {
   //static int flip = 0;
