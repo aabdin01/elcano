@@ -19,11 +19,13 @@ ParseState ps;
 //void DataReady();
 extern bool DataAvailable;
 
+int map_points = 13;
 
 /*---------------------------------------------------------------------------------------*/ 
 // EDIT for route
 // CONES includes start and stop
 #define CONES 1
+int DESTINATION_INDEX = 9;
 long goal_lat[CONES] = {47760934};
 long goal_lon[CONES] = {-122189963};
 //long goal_lat[CONES] = {  47621881,   47621825,   47623144,   47620616,   47621881};
@@ -47,8 +49,6 @@ long goal_lon[CONES] = {-122189963};
 
 #define MAX_MAPS 10         // The maximum number of map files stored to SD card.
 #define MAX_WAYPOINTS 40    // The maximum number of waypoints in each map file.
-
-extern int map_points =  5;//16;
 
 struct junction Nodes[MAX_WAYPOINTS];
 
@@ -96,11 +96,9 @@ void GetGoals(junction *nodes , int Goals)
   double deltaX, deltaY, Distance;
   for (int i = 0; i < CONES; i++)
   {
-//    mission[i].latitude  = Nodes[i].east_mm;//goal_lat[i];
-//    mission[i].longitude = Nodes[i].north_mm;//goal_lon[i];
-    mission[i].east_mm  = goal_lat[i];
-    mission[i].north_mm = goal_lon[i];
-//    mission[i].Compute_mm();  
+    mission[i].latitude  = goal_lat[i];
+    mission[i].longitude = goal_lon[i];
+    mission[i].Compute_mm();  
     mission[i].speed_mmPs = DESIRED_SPEED_mmPs;
     mission[i].index = 1 | GOAL;
     mission[i].sigma_mm = 1000;
@@ -119,13 +117,20 @@ void GetGoals(junction *nodes , int Goals)
       mission[i-1].Evector_x1000 = (deltaX * 1000.) / Distance;
       mission[i-1].Nvector_x1000 = (deltaY * 1000.) / Distance;
     }
-//    if (i == CONES - 1)
-//    {
-//      mission[i].Evector_x1000 = mission[i-1].Evector_x1000;
-//      mission[i].Nvector_x1000 = mission[i-1].Nvector_x1000;
-//      mission[i].index |= END;
-//    }
+    if (i == CONES - 1)
+    {
+      mission[i].Evector_x1000 = mission[i-1].Evector_x1000;
+      mission[i].Nvector_x1000 = mission[i-1].Nvector_x1000;
+      mission[i].index |= END;
+    }
   }
+
+  //Test Mission::
+//  for(int i = 0; i < CONES; i++){
+//    Serial.println("mission " + String(i) + " east_mm " + 
+//    String(mission[i].east_mm) + "\t mission north_mm " + String(mission[i].north_mm));
+//    Serial.println("Nodes  east_mm " +  String(Nodes[i].east_mm) + "\t Nodes north_mm " + String(Nodes[i].north_mm));
+//  }
 }
 /*---------------------------------------------------------------------------------------*/
 // Find the distance from (east_mm, north_mm) to a road segment Nodes[i].distance[j]
@@ -342,8 +347,8 @@ void test_buildPath(){
 int FindPath(waypoint *start, waypoint *destination)//While OpenSet is not empty
 {
 
-  Serial.println("Start East_mm " + String(start->east_mm) + "\t North " + String(start->north_mm));
-  Serial.println("Start East_mm " + String(destination->east_mm) + "\t North " + String(destination->north_mm));
+ Serial.println("StartIndex " + String(start->index));
+ Serial.println("DestinationINdex " + String(destination->index));
   long ClosedCost[map_points];
   int  i, neighbor, k;
   long NewCost, NewStartCost, NewCostToGoal;
@@ -360,7 +365,6 @@ int FindPath(waypoint *start, waypoint *destination)//While OpenSet is not empty
    i = start->index; // get successor nodes of start
    Open[i].CostFromStart = start->distance_mm(Nodes[i].east_mm, Nodes[i].north_mm); 
    Open[i].CostToGoal = destination->distance_mm(Nodes[i].east_mm, Nodes[i].north_mm);
-   
    Open[i].TotalCost = Open[i].CostFromStart + Open[i].CostToGoal;
    Open[i].ParentID = currentlocation;
       
@@ -368,7 +372,9 @@ int FindPath(waypoint *start, waypoint *destination)//While OpenSet is not empty
    Open[i].CostFromStart = start->distance_mm(Nodes[i].east_mm, Nodes[i].north_mm);
    Open[i].CostToGoal = destination->distance_mm(Nodes[i].east_mm, Nodes[i].north_mm);
    Open[i].TotalCost = Open[i].CostFromStart + Open[i].CostToGoal;
-      
+   
+   Serial.println("Cost fRom start " + String(Open[i].CostFromStart) + "\t To Goal " + String(Open[i].CostToGoal));
+   
    Open[i].ParentID = currentlocation;     
    while (BestCost < MAX_DISTANCE) //While OpenSet is not empty
    { 
@@ -390,16 +396,13 @@ int FindPath(waypoint *start, waypoint *destination)//While OpenSet is not empty
        {
          return INVALID;
        }
-        Serial.println("BESTID " + String(BestID));
-        Serial.println("DestinationINdex " + String(destination->index));
         Open[BestID].TotalCost = MAX_DISTANCE;  // Remove node from "stack".  
        if (BestID == destination->index || BestID == destination->sigma_mm)// Done:: reached the goal!!
        {  
-        
 //       return BuildPath(BestID, start, destination);   // Construct path backward to start. 
          return 5;
        }
-        
+       Serial.println("BESTID " + String(BestID));
       i = BestID;  // get successor nodes from map
     
       for (neighbor = 0; neighbor < 5; neighbor++)
@@ -468,22 +471,22 @@ int PlanPath (waypoint *start, waypoint *destination)
 //      else   // use A* with the road network
 //      {
 //        Serial.println("In Else");
-        Path[1] = roadOrigin;
-        Path[1].index = 1;
-        destination -> index = 7;
+//        Path[1] = roadOrigin;
+//        Path[1].index = 1;
+//        destination -> index = 20;
 //        last = FindPath(roadOrigin, roadDestination);
         last = FindPath(start, destination);
 //      }
       
-      Path[last] = destination;
-      Path[last-1].vectors(&Path[last]);
-      Path[last].Evector_x1000 = Path[last-1].Evector_x1000;
-      Path[last].Nvector_x1000 = Path[last-1].Nvector_x1000;
-      Path[last].index = last | END;
-
-//    Serial.println("Destination : East_mm = " + String(destination->east_mm) + "\t North_mm =  " + String(destination->north_mm));
-    Serial.println();
-    
+//      Path[last] = destination;
+//      Path[last-1].vectors(&Path[last]);
+//      Path[last].Evector_x1000 = Path[last-1].Evector_x1000;
+//      Path[last].Nvector_x1000 = Path[last-1].Nvector_x1000;
+//      Path[last].index = last | END;
+//
+////    Serial.println("Destination : East_mm = " + String(destination->east_mm) + "\t North_mm =  " + String(destination->north_mm));
+//    Serial.println();
+//    
     return last;
    
 }
@@ -889,9 +892,10 @@ void setup()
 //Test mission::a list of waypoints to cover
 void test_mission(){
 
-  for(int i = 0; i <map_points; i++)
+  for(int i = 0; i < map_points; i++)
   {
-    Serial.println("mission " + String(i) + " = " + String(mission[i].latitude) +"\t north_mm " + String(mission[i].north_mm));
+    Serial.println("mission " + String(i) + " = " +
+    String(mission[i].latitude) +"\t north_mm " + String(mission[i].north_mm));
   }
 }
 

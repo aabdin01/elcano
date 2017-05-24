@@ -292,9 +292,10 @@ void  waypoint::vectors(waypoint *other)
 long  waypoint::distance_mm(long East_mm, long North_mm)
 {
   double deltaX, deltaY;
-  deltaX = East_mm - east_mm;
-  deltaY = North_mm - north_mm;
-  return sqrt(deltaX*deltaX + deltaY*deltaY);
+  deltaX = East_mm - east_mm; //216 
+  deltaY = North_mm - north_mm; //133
+  
+   return sqrt(deltaX*deltaX + deltaY*deltaY);
 }
 
 //========================= Items only for C6 Navigator =================================
