@@ -506,25 +506,20 @@ void SendPath(waypoint *course, int count)
      results.speed_cmPs = course->speed_mmPs / 10;//data.speed_cmPs + 9; 
      results.write(&Serial2);  
      delay(100);
-  
   }
-  
 }
 
 //Converts provided Longitude and Latitude to MM
-boolean convertLatLonToMM(long latitude, long longitude){
-  long scaledOriginLat = LATITUDE_ORIGIN*1000000;
-  long scaledOriginLon = LONGITUDE_ORIGIN*1000000;
+void convertLatLonToMM(long *latitude, long *longitude){
+  long diff = *longitude - LONGITUDE_ORIGIN;
+  double relative = ((double)diff)/1000000. * (PI /180.) * cos(((double) LATITUDE_ORIGIN/1000000. * (PI/180.)));
+  relative *= EARTH_RADIUS_MM;
+  *longitude = relative;
 
-  double dLat = (latitude) * (PI/180.0) - (scaledOriginLat)* (PI / 180.0);
-  double dLon = latitude * (PI/180.0) - scaledOriginLon * (PI / 180.0);
-
-  Serial.println("dLat = " + String(dLat) + " dLon = " + String(dLon));
-  double soln = sin(dLat/2) * cos(dLat/2) + cos(scaledOriginLat * PI / 180) * cos(latitude * PI / 180) * sin(dLon/2) * sin(dLon/2);
-  double ans = 2 * atan2(sqrt(soln), sqrt(1-soln));
-  double finalAns = EARTH_RADIUS_MM * ans;
-  return true;
+  diff = *latitude - LATITUDE_ORIGIN;
+  *latitude = ((double)diff)/1000000. *  (PI /180.) * EARTH_RADIUS_MM;
 }
+
 /*---------------------------------------------------------------------------------------*/
 // LoadMap
 // Loads the map nodes from a file.
@@ -644,7 +639,7 @@ boolean LoadMap(char* fileName)
 
         case 9:  // filename
           Nodes[row].Distance[3] = atol(token);
-          convertLatLonToMM(Nodes[row].east_mm, Nodes[row].north_mm);
+          convertLatLonToMM(&Nodes[row].east_mm, &Nodes[row].north_mm);
           col++;
           row++;
         break;
@@ -899,6 +894,7 @@ void test_mission(){
     Serial.println("mission " + String(i) + " = " + String(mission[i].latitude) +"\t north_mm " + String(mission[i].north_mm));
   }
 }
+
 void loop() 
 {
                               
@@ -917,13 +913,13 @@ void loop()
 //            {
 //              digitalWrite(C4_DATA_SENT, HIGH);  // transition interrupts the processor
               digitalWrite(C4_DATA_SENT, LOW);
-              
+
               //Start.readPointString(1000, 0);  
 //              last = 0;
-              Start.east_mm = Nodes[0].east_mm;//Path[last].east_mm;
-              Start.north_mm = Nodes[0].north_mm;
+              //Start.east_mm = Nodes[0].east_mm;//Path[last].east_mm;
+              //Start.north_mm = Nodes[0].north_mm;
               
-              last = PlanPath (&Start, &mission[0]);
+              //last = PlanPath (&Start, &mission[0]);
 //              Serial.println(last);
 //              Path[last].index |= GOAL;
 
